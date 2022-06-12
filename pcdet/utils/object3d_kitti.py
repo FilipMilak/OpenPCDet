@@ -1,11 +1,37 @@
 import numpy as np
 
+DENSE_TO_KITTI_LABEL = {'PassengerCar': 'Car',
+                        'Pedestrian': 'Pedestrian',
+                        'RidableVehicle': 'Cyclist',
+                        'LargeVehicle': 'Van',
+                        'Vehicle': 'Van',
+                        'DontCare': 'DontCare'}
 
-def get_objects_from_label(label_file):
+
+
+def get_objects_from_label(label_file, dense=False):
+
     with open(label_file, 'r') as f:
         lines = f.readlines()
-    objects = [Object3d(line) for line in lines]
-    return objects
+
+    objects = [Object3d(line, dense) for line in lines]
+
+    if dense:
+
+        objects_visible_in_lidar = []
+
+        for obj in objects:
+
+            if obj.loc[0] != -1000. and obj.cls_type != 'ignore':
+
+                objects_visible_in_lidar.append(obj)
+
+        return objects_visible_in_lidar
+
+
+    else:
+
+        return objects
 
 
 def cls_type_to_id(cls_type):
@@ -16,10 +42,10 @@ def cls_type_to_id(cls_type):
 
 
 class Object3d(object):
-    def __init__(self, line):
+    def __init__(self, line, dense):
         label = line.strip().split(' ')
         self.src = line
-        self.cls_type = label[0]
+        self.cls_type = DENSE_TO_KITTI_LABEL.get(label[0], 'ignore') if dense else label[0]
         self.cls_id = cls_type_to_id(self.cls_type)
         self.truncation = float(label[1])
         self.occlusion = float(label[2])  # 0:fully visible 1:partly occluded 2:largely occluded 3:unknown
@@ -31,7 +57,10 @@ class Object3d(object):
         self.loc = np.array((float(label[11]), float(label[12]), float(label[13])), dtype=np.float32)
         self.dis_to_cam = np.linalg.norm(self.loc)
         self.ry = float(label[14])
-        self.score = float(label[15]) if label.__len__() == 16 else -1.0
+        if dense:
+            self.score = label[18]
+        else:
+            self.score = float(label[15]) if label.__len__() == 16 else -1.0
         self.level_str = None
         self.level = self.get_kitti_obj_level()
 

@@ -10,6 +10,21 @@ from .processor.data_processor import DataProcessor
 from .processor.point_feature_encoder import PointFeatureEncoder
 
 
+def nth_repl(s: str, sub: str, repl: str, n: int):
+    find = s.find(sub)
+    # If find is not -1 we have found at least one match for the substring
+    i = find != -1
+    # loop util we find the nth or we find no match
+    while find != -1 and i != n:
+        # find + 1 means we start searching from after the last match
+        find = s.find(sub, find + 1)
+        i += 1
+    # If i is equal to n we found nth match so replace
+    if i == n:
+        return s[:find] + repl + s[find+len(sub):]
+    return s
+
+
 class DatasetTemplate(torch_data.Dataset):
     def __init__(self, dataset_cfg=None, class_names=None, training=True, root_path=None, logger=None):
         super().__init__()
@@ -18,7 +33,6 @@ class DatasetTemplate(torch_data.Dataset):
         self.class_names = class_names
         self.logger = logger
         self.root_path = root_path if root_path is not None else Path(self.dataset_cfg.DATA_PATH)
-        self.logger = logger
         if self.dataset_cfg is None or class_names is None:
             return
 
@@ -28,7 +42,7 @@ class DatasetTemplate(torch_data.Dataset):
             point_cloud_range=self.point_cloud_range
         )
         self.data_augmentor = DataAugmentor(
-            self.root_path, self.dataset_cfg.DATA_AUGMENTOR, self.class_names, logger=self.logger
+            self.root_path, self.dataset_cfg, self.class_names, logger=self.logger
         ) if self.training else None
         self.data_processor = DataProcessor(
             self.dataset_cfg.DATA_PROCESSOR, point_cloud_range=self.point_cloud_range,
@@ -99,7 +113,7 @@ class DatasetTemplate(torch_data.Dataset):
         """
         raise NotImplementedError
 
-    def prepare_data(self, data_dict):
+    def prepare_data(self, data_dict, mor=np.inf):
         """
         Args:
             data_dict:
@@ -107,6 +121,7 @@ class DatasetTemplate(torch_data.Dataset):
                 gt_boxes: optional, (N, 7 + C) [x, y, z, dx, dy, dz, heading, ...]
                 gt_names: optional, (N), string
                 ...
+            mor: meteological optival range in meter
 
         Returns:
             data_dict:
@@ -127,7 +142,8 @@ class DatasetTemplate(torch_data.Dataset):
             data_dict = self.data_augmentor.forward(
                 data_dict={
                     **data_dict,
-                    'gt_boxes_mask': gt_boxes_mask
+                    'gt_boxes_mask': gt_boxes_mask,
+                    'mor': mor
                 }
             )
 
@@ -150,6 +166,17 @@ class DatasetTemplate(torch_data.Dataset):
         )
 
         if self.training and len(data_dict['gt_boxes']) == 0:
+
+            sample = nth_repl(data_dict['frame_id'], '_', ',', 2)
+
+            message = f'stage: {"train" if self.training else "eval"}, ' \
+                      f'sample: {sample} without valid annotations skipped'
+
+            try:
+                self.logger.warning(message)
+            except AttributeError:
+                print(message)
+
             new_index = np.random.randint(self.__len__())
             return self.__getitem__(new_index)
 
