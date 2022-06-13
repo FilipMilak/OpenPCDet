@@ -27,5 +27,7 @@ try:
 
 
 except ModuleNotFoundError as e:
+    
+    if __name__ == '__main__':
 
-    print(f'{e} => Inference not available')
+        print(f'{e} => Inference not available')
