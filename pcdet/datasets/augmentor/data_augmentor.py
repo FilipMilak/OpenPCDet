@@ -14,11 +14,11 @@ class DataAugmentor(object):
 
         self.data_augmentor_queue = []
         aug_config_list = augmentor_configs if isinstance(augmentor_configs, list) \
-            else augmentor_configs.AUG_CONFIG_LIST
+            else augmentor_configs.DATA_AUGMENTOR.AUG_CONFIG_LIST
 
         for cur_cfg in aug_config_list:
             if not isinstance(augmentor_configs, list):
-                if cur_cfg.NAME in augmentor_configs.DISABLE_AUG_LIST:
+                if cur_cfg.NAME in augmentor_configs.DATA_AUGMENTOR.DISABLE_AUG_LIST:
                     continue
             cur_augmentor = getattr(self, cur_cfg.NAME)(config=cur_cfg)
             self.data_augmentor_queue.append(cur_augmentor)
@@ -122,6 +122,9 @@ class DataAugmentor(object):
     def random_world_translation(self, data_dict=None, config=None):
         if data_dict is None:
             return partial(self.random_world_translation, config=config)
+
+        #print("\n\n", config, "\n\n")
+
         noise_translate_std = config['NOISE_TRANSLATE_STD']
         assert len(noise_translate_std) == 3
         noise_translate = np.array([

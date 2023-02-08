@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import yaml
@@ -51,8 +52,7 @@ def cfg_from_list(cfg_list, config):
 def merge_new_config(config, new_config):
     if '_BASE_CONFIG_' in new_config:
 
-        new_config['_BASE_CONFIG_'] = 'lib/OpenPCDet/tools/cfgs/dataset_configs/dense_dataset.yaml'
-
+        new_config['_BASE_CONFIG_'] = '../tools/cfgs/dataset_configs/dense_dataset.yaml'
         with open(new_config['_BASE_CONFIG_'], 'r') as f:
             try:
                 yaml_config = yaml.safe_load(f, Loader=yaml.FullLoader)
