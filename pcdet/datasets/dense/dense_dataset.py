@@ -10,17 +10,31 @@ from pcdet.datasets.dataset import DatasetTemplate, nth_repl
 from pcdet.ops.roiaware_pool3d import roiaware_pool3d_utils
 from pcdet.utils import box_utils, calibration_kitti, common_utils, object3d_kitti
 
-from tools.snowfall.simulation import augment
-from tools.wet_ground.augmentation import ground_water_augmentation
-from tools.snowfall.sampling import snowfall_rate_to_rainfall_rate, compute_occupancy
-from lib.LISA.python.lisa import LISA
+try:
 
-from lib.LiDAR_fog_sim.fog_simulation import *
-from lib.LiDAR_fog_sim.SeeingThroughFog.tools.DatasetFoggification.beta_modification import BetaRadomization
-from lib.LiDAR_fog_sim.SeeingThroughFog.tools.DatasetFoggification.lidar_foggification import haze_point_cloud
+    from .tools.snowfall.simulation import augment
+    from .tools.wet_ground.augmentation import ground_water_augmentation
+    from .tools.snowfall.sampling import snowfall_rate_to_rainfall_rate, compute_occupancy
+    from .lib.LISA.python.lisa import LISA
 
-from lib.pa_aug.part_aware_augmentation import PartAwareAugmentation
+    from .lib.LiDAR_fog_sim.fog_simulation import *
+    from .lib.LiDAR_fog_sim.SeeingThroughFog.tools.DatasetFoggification.beta_modification import BetaRadomization
+    from .lib.LiDAR_fog_sim.SeeingThroughFog.tools.DatasetFoggification.lidar_foggification import haze_point_cloud
 
+    from .lib.pa_aug.part_aware_augmentation import PartAwareAugmentation
+
+except (ModuleNotFoundError, ImportError):
+
+    from tools.snowfall.simulation import augment
+    from tools.wet_ground.augmentation import ground_water_augmentation
+    from tools.snowfall.sampling import snowfall_rate_to_rainfall_rate, compute_occupancy
+    from lib.LISA.python.lisa import LISA
+
+    from lib.LiDAR_fog_sim.fog_simulation import *
+    from lib.LiDAR_fog_sim.SeeingThroughFog.tools.DatasetFoggification.beta_modification import BetaRadomization
+    from lib.LiDAR_fog_sim.SeeingThroughFog.tools.DatasetFoggification.lidar_foggification import haze_point_cloud
+    
+    from lib.pa_aug.part_aware_augmentation import PartAwareAugmentation
 
 class Namespace:
     def __init__(self, **kwargs):
@@ -70,10 +84,14 @@ class DenseDataset(DatasetTemplate):
 
         split_dir = self.root_path / 'ImageSets' / f'{self.split}{self.suffix}.txt'
 
+        #print("\n\n", split_dir, "\n\n")
+
         if split_dir.exists():
             self.sample_id_list = ['_'.join(x.strip().split(',')) for x in open(split_dir).readlines()]
         else:
             self.sample_id_list = None
+
+        #print("\n\n", self.sample_id_list, "\n\n")
 
         self.dense_infos = []
         self.include_dense_data(self.mode, search_str)
@@ -126,6 +144,7 @@ class DenseDataset(DatasetTemplate):
 
         for info_path in self.dataset_cfg.INFO_PATH[mode]:
             info_path = Path(__file__).parent.parent.parent.parent.absolute() / 'data' / 'dense' / info_path
+            
             if not info_path.exists():
                 continue
             with open(info_path, 'rb') as f:
@@ -157,17 +176,22 @@ class DenseDataset(DatasetTemplate):
 
         split_dir = self.root_path / 'ImageSets' / f'{self.split}.txt'
 
+        #print("\n\n", split_dir, "\n\n")
+
         if split_dir.exists():
             self.sample_id_list = ['_'.join(x.strip().split(',')) for x in open(split_dir).readlines()]
         else:
             self.sample_id_list = None
 
+        #print("\n\n", self.sample_id_list, "\n\n")
+
     def get_lidar(self, idx):
-        lidar_file = self.root_split_path / self.lidar_folder / ('%s.bin' % idx)
+        lidar_file = self.root_split_path / 'training' / self.lidar_folder / ('%s.bin' % idx)
         assert lidar_file.exists(), f'{lidar_file} not found'
         return np.fromfile(str(lidar_file), dtype=np.float32).reshape(-1, 5)
 
     def get_image_shape(self, idx):
+
         img_file = self.root_split_path / 'cam_stereo_left_lut' / ('%s.png' % idx)
         assert img_file.exists(), f'{img_file} not found'
         return np.array(io.imread(img_file).shape[:2], dtype=np.int32)
@@ -208,6 +232,7 @@ class DenseDataset(DatasetTemplate):
             try:
                 img_shape = self.get_image_shape(sample_idx)
             except (SyntaxError, ValueError) as e:
+                
                 print(f'{e}\n\n{sample_idx} image seems to be broken')
                 img_shape = np.array([1024, 1920], dtype=np.int32)
 
@@ -317,6 +342,8 @@ class DenseDataset(DatasetTemplate):
             return info
 
         sample_id_list = sample_id_list if sample_id_list is not None else self.sample_id_list
+
+        #print("\n\n",sample_id_list,"\n\n")
 
         with futures.ThreadPoolExecutor(num_workers) as executor:
             infos = list(tqdm(executor.map(process_single_scene, sample_id_list), total=len(sample_id_list)))
@@ -498,7 +525,7 @@ class DenseDataset(DatasetTemplate):
 
         return annos
 
-    def evaluation(self, det_annos, class_names, logger, **kwargs):
+    def evaluation(self, det_annos, class_names, **kwargs):
         if 'annos' not in self.dense_infos[0].keys():
             return None, {}
 
@@ -506,7 +533,7 @@ class DenseDataset(DatasetTemplate):
 
         eval_det_annos = copy.deepcopy(det_annos)
         eval_gt_annos = [copy.deepcopy(info['annos']) for info in self.dense_infos]
-        ap_result_str, ap_dict = kitti_eval.get_official_eval_result(eval_gt_annos, eval_det_annos, class_names, logger)
+        ap_result_str, ap_dict = kitti_eval.get_official_eval_result(eval_gt_annos, eval_det_annos, class_names)
 
         return ap_result_str, ap_dict
 
@@ -1285,4 +1312,4 @@ if __name__ == '__main__':
                                    class_names=['Car', 'Pedestrian', 'Cyclist'],
                                    data_path=ROOT_DIR / 'data' / 'dense',
                                    save_path=ROOT_DIR / 'data' / 'dense',
-                                   suffix=v, addon=a, logger=log)
+                                   suffix=v, addon=a, logger=log, train = True, val = False, test = False, gt = True)

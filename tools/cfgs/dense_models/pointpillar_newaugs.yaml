@@ -19,14 +19,14 @@ DATA_CONFIG:
           MAX_NUMBER_OF_VOXELS: {
             'train': 16000,
             'test': 40000
-          }
+          }      
     DATA_AUGMENTOR:
         DISABLE_AUG_LIST: ['random_world_frustum_dropout', 'random_local_frustum_dropout', 'random_local_translation']
         AUG_CONFIG_LIST:
             - NAME: gt_sampling
               USE_ROAD_PLANE: False
               DB_INFO_PATH:
-                  - dense_dbinfos_train_clear.pkl
+                  - dense_dbinfos_train_clear_day.pkl
               PREPARE: {
                  filter_by_min_points: ['Car:5', 'Pedestrian:5', 'Cyclist:5'],
                  filter_by_difficulty: [-1, 2],
@@ -56,6 +56,7 @@ DATA_CONFIG:
             - NAME: random_world_translation
               WORLD_TRANSLATION_RANGE: [ -0.2, 0.2 ]
               ALONG_AXIS_LIST: ['x', 'y', 'z']
+              NOISE_TRANSLATE_STD : [0.5, 0.5, 0.5]
 
             - NAME: random_local_translation
               LOCAL_TRANSLATION_RANGE: [0.95, 1.05]

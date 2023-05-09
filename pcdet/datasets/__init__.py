@@ -58,7 +58,7 @@ def build_dataloader(dataset_cfg, class_names, batch_size, dist, root_path=None,
     if 'WORKERS' in dataset_cfg:
         workers = dataset_cfg.WORKERS
 
-    dataset = __all__[dataset_cfg.DATASET](
+    dataset : DenseDataset = __all__[dataset_cfg.DATASET](
         dataset_cfg=dataset_cfg,
         class_names=class_names,
         root_path=root_path,

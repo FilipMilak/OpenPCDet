@@ -41,6 +41,7 @@ class DatasetTemplate(torch_data.Dataset):
             self.dataset_cfg.POINT_FEATURE_ENCODING,
             point_cloud_range=self.point_cloud_range
         )
+        
         self.data_augmentor = DataAugmentor(
             self.root_path, self.dataset_cfg, self.class_names, logger=self.logger
         ) if self.training else None
