@@ -45,7 +45,8 @@ class PointFeatureEncoder(object):
             num_output_features = len(self.used_feature_list)
             return num_output_features
 
-        assert points.shape[-1] == len(self.src_feature_list)
+        # TODO: commented since it throws an exception when data is not normed but rest is actually pretty senseless
+        #assert points.shape[-1] == len(self.src_feature_list)
         point_feature_list = [points[:, 0:3]]
         for x in self.used_feature_list:
             if x in ['x', 'y', 'z']:

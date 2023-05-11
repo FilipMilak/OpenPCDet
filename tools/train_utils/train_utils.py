@@ -117,7 +117,7 @@ def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, ac
                     )
                     
                     if show_gpu_stat and accumulated_iter % (3 * logger_iter_interval) == 0:
-                        # To show the GPU utilization, please install gpustat through "pip install gpustat"
+                        # Tshow_gpu_stato show the GPU utilization, please install gpustat through "pip install gpustat"
                         gpu_info = os.popen('gpustat').read()
                         logger.info(gpu_info)
             else:                
@@ -152,6 +152,8 @@ def train_model(model, optimizer, train_loader, model_func, lr_scheduler, optim_
                 lr_warmup_scheduler=None, ckpt_save_interval=1, max_ckpt_save_num=50,
                 merge_all_iters_to_one_epoch=False, use_amp=False,
                 use_logger_to_record=False, logger=None, logger_iter_interval=None, ckpt_save_time_interval=None, show_gpu_stat=False):
+    
+    
     accumulated_iter = start_iter
     with tqdm.trange(start_epoch, total_epochs, desc='epochs', dynamic_ncols=True, leave=(rank == 0)) as tbar:
         total_it_each_epoch = len(train_loader)
