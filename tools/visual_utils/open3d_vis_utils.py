@@ -9,6 +9,7 @@ import matplotlib
 import numpy as np
 from PIL import Image, ImageFont, ImageDraw
 from pyquaternion import Quaternion
+import pyqtgraph.opengl as gl
 
 box_colormap = [
     [1, 1, 1],
@@ -153,6 +154,23 @@ def draw_box(vis, gt_boxes, color=(0, 1, 0), ref_labels=None, scores=None):
         vis.add_geometry(class_3d)
 
     return vis
+
+def get_box(boxes, color=(0, 1., 0, 1.), ref_labels=None, scores=None):
+
+    res_boxes = []
+
+    for i in range(boxes.shape[0]):
+        line_set, score_3d, class_3d = translate_boxes_to_open3d_instance(boxes[i], scores[i], ref_labels[i])
+
+        points = np.asarray(line_set.points)
+
+        res_boxes.append(
+            ([gl.GLLinePlotItem(pos=np.array([points[line[0]],points[line[1]]]), mode='lines', color=color) for line in np.asarray(line_set.lines)], 
+            gl.GLScatterPlotItem(pos=np.asarray(score_3d.points), size=2, color=color),
+            gl.GLScatterPlotItem(pos=np.asarray(class_3d.points), size=2, color=color),
+            scores[i]))
+
+    return res_boxes
 
 def text_3d(text, pos, direction, density=3, font='/lhome/fimilak/Documents/OpenPCDet/tools/visual_utils/Arial.ttf', font_size=20):
     """
